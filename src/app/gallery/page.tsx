@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { useTransition } from '@/context/TransitionContext';
@@ -79,10 +79,14 @@ function GalleryHearts() {
 
 export default function GalleryPage() {
   const [mounted, setMounted] = useState(false);
-  const { transitionComplete } = useTransition();
+  const [skipEntranceAnimation, setSkipEntranceAnimation] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== 'undefined' && sessionStorage.getItem('transition_from_loading') === 'true') {
+      setSkipEntranceAnimation(true);
+      sessionStorage.removeItem('transition_from_loading');
+    }
   }, []);
 
   if (!mounted) {
@@ -107,12 +111,12 @@ export default function GalleryPage() {
 
       {/* Gallery Content */}
       <motion.div
-        initial={transitionComplete ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 30, scale: 0.95 }}
+        initial={skipEntranceAnimation ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: transitionComplete ? 0 : 1.8, ease: [0.34, 1.56, 0.64, 1] }}
+        transition={{ duration: skipEntranceAnimation ? 0 : 1.8, ease: [0.34, 1.56, 0.64, 1] }}
         className="w-full max-w-full sm:max-w-3xl z-20 pointer-events-auto flex items-center justify-center flex-1"
       >
-        <ClassicGallery play={transitionComplete || mounted} />
+        <ClassicGallery />
       </motion.div>
     </div>
   );

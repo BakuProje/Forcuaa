@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import PulsatingDots from '@/components/ui/pulsating-loader';
 import RippleWaveLoader from '@/components/ui/ripple-wave-loader';
 import { useTransition } from '@/context/TransitionContext';
+import { cn } from '@/lib/utils';
 
 const ClassicGallery = dynamic(
   () => import("@/components/ui/image-gallery"),
@@ -80,9 +82,11 @@ function GalleryHearts() {
 }
 
 export default function LoadingPage() {
-  const { setDoorImage, setTransitionComplete } = useTransition();
+  const router = useRouter();
+  const { setDoorImage } = useTransition();
   const [mounted, setMounted] = useState(false);
   const [isExitingLoader, setIsExitingLoader] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
   
   // Transition Door States
   const [showDoors, setShowDoors] = useState(false);
@@ -90,8 +94,6 @@ export default function LoadingPage() {
   const [doorImageLocal, setDoorImageLocal] = useState<string | null>(null);
   const [videoOpacity, setVideoOpacity] = useState(1);
   const [videoStarted, setVideoStarted] = useState(false);
-  const [overlayFading, setOverlayFading] = useState(false);
-  const [overlayHidden, setOverlayHidden] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -166,17 +168,15 @@ export default function LoadingPage() {
         setWindowOpen(true);
       }, 150);
  
-      // After doors fully open (3s), fade out overlay and activate gallery (no remount)
+      // After 3s of door opening (at 23.15s), pause video and route to gallery
       setTimeout(() => {
+        setHasRedirected(true);
         if (videoRef.current) videoRef.current.pause();
-        // Change URL without triggering Next.js route change (keeps gallery mounted)
-        window.history.replaceState({}, '', '/gallery');
-        // Signal gallery to start playing videos
-        setTransitionComplete(true);
-        // Fade out entire overlay
-        setOverlayFading(true);
-        setTimeout(() => setOverlayHidden(true), 600);
-      }, 3000);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('transition_from_loading', 'true');
+        }
+        router.push('/gallery');
+      }, 3150);
     }
   };
  
@@ -197,11 +197,12 @@ export default function LoadingPage() {
           setTimeout(() => {
             setWindowOpen(true);
             setTimeout(() => {
+              setHasRedirected(true);
               if (videoRef.current) videoRef.current.pause();
-              window.history.replaceState({}, '', '/gallery');
-              setTransitionComplete(true);
-              setOverlayFading(true);
-              setTimeout(() => setOverlayHidden(true), 600);
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('transition_from_loading', 'true');
+              }
+              router.push('/gallery');
             }, 3000);
           }, 150);
         }, 800);
@@ -217,117 +218,110 @@ export default function LoadingPage() {
  
   return (
     <div 
-      className="w-screen h-screen overflow-hidden relative flex flex-col items-center select-none"
-      style={{
-        backgroundImage: "url('/photos/gallerybg.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
+      className="w-screen h-screen overflow-hidden relative flex flex-col items-center select-none bg-black"
       suppressHydrationWarning
     >
-      {/* Gallery Content - always rendered, starts playing after transition completes */}
-      <div className="absolute inset-0 z-0 flex flex-col items-center" suppressHydrationWarning>
-        <GalleryHearts />
-        <div className="w-full max-w-full sm:max-w-3xl z-20 flex items-center justify-center flex-1">
-          <ClassicGallery play={videoStarted} />
+      {/* 1. Gallery Content - rendered in the background of the loading page for seamless transition */}
+      {videoStarted && (
+        <div
+          className="absolute inset-0 z-0 flex flex-col items-center"
+          style={{
+            backgroundImage: "url('/photos/gallerybg.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+          suppressHydrationWarning
+        >
+          <GalleryHearts />
+          <div className="w-full max-w-full sm:max-w-3xl z-20 flex items-center justify-center flex-1">
+            <ClassicGallery play={false} />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Overlay layer: video + loader + doors (fades out after transition) */}
-      {!overlayHidden && (
-        <>
-          {/* Loading video - fades out at 20s */}
-          <video
-            ref={videoRef}
-            src="/Video/loading.mp4"
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            onPlaying={handleVideoPlaying}
-            onTimeUpdate={handleTimeUpdate}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              zIndex: 10,
-              pointerEvents: 'none',
-              opacity: videoOpacity * (overlayFading ? 0 : 1),
-              transition: 'opacity 0.6s ease-in-out',
-              willChange: 'opacity',
-            }}
-          />
+      {/* 2. Fullscreen Video (Opacity changes to 0 at 20s, but continues playing for audio continuity) */}
+      <video
+        ref={videoRef}
+        src="/Video/loading.mp4"
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+        onPlaying={handleVideoPlaying}
+        onTimeUpdate={handleTimeUpdate}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 10,
+          pointerEvents: 'none',
+          opacity: videoOpacity,
+          transition: 'opacity 0.3s ease-in-out',
+          willChange: 'opacity',
+        }}
+      />
 
-          {/* Loading Animation - positioned at bottom */}
-          {!isExitingLoader && (
-            <motion.div
-              className="absolute bottom-10 left-0 right-0 z-20 flex flex-col items-center gap-4 pb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{
-                opacity: overlayFading ? 0 : 1,
-                y: 0,
-              }}
-              transition={{ duration: 0.8, ease: 'easeInOut' }}
-              style={{ pointerEvents: 'none', transition: 'opacity 0.6s ease-in-out' }}
-            >
-              <RippleWaveLoader />
-              <PulsatingDots />
-            </motion.div>
-          )}
+      {/* 3. Loading Animation - positioned at bottom */}
+      {!isExitingLoader && (
+        <motion.div
+          className="absolute bottom-10 left-0 right-0 z-20 flex flex-col items-center gap-4 pb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{ duration: 0.8, ease: 'easeInOut' }}
+        >
+          <RippleWaveLoader />
+          <PulsatingDots />
+        </motion.div>
+      )}
 
-          {/* Splitting Doors Overlay (z-30, gallery shows behind when doors open) */}
-          {showDoors && doorImageLocal && (
+      {/* 4. Splitting Doors Overlay (Uses the captured frame) */}
+      {showDoors && doorImageLocal && (
+        <div className="fixed inset-0 z-40 pointer-events-none flex overflow-hidden">
+          {/* Left Door */}
+          <motion.div
+            initial={{ x: '0%' }}
+            animate={windowOpen ? { x: '-100%', translateZ: 0 } : { x: '0%', translateZ: 0 }}
+            transition={{ duration: 3.0, ease: [0.76, 0, 0.24, 1] }}
+            className="w-1/2 h-full relative overflow-hidden pointer-events-auto border-r border-white/10"
+            style={{ willChange: 'transform' }}
+          >
             <div
-              className="fixed inset-0 z-30 pointer-events-none flex overflow-hidden"
+              className="absolute top-0 left-0 w-[100vw] h-full"
               style={{
-                opacity: overlayFading ? 0 : 1,
-                transition: 'opacity 0.6s ease-in-out',
+                backgroundImage: `url(${doorImageLocal})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
               }}
-            >
-              {/* Left Door */}
-              <motion.div
-                initial={{ x: '0%' }}
-                animate={windowOpen ? { x: '-100%', translateZ: 0 } : { x: '0%', translateZ: 0 }}
-                transition={{ duration: 3.0, ease: [0.76, 0, 0.24, 1] }}
-                className="w-1/2 h-full relative overflow-hidden pointer-events-auto border-r border-white/10"
-                style={{ willChange: 'transform' }}
-              >
-                <div
-                  className="absolute top-0 left-0 w-[100vw] h-full"
-                  style={{
-                    backgroundImage: `url(${doorImageLocal})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                />
-              </motion.div>
-     
-              {/* Right Door */}
-              <motion.div
-                initial={{ x: '0%' }}
-                animate={windowOpen ? { x: '100%', translateZ: 0 } : { x: '0%', translateZ: 0 }}
-                transition={{ duration: 3.0, ease: [0.76, 0, 0.24, 1] }}
-                className="w-1/2 h-full relative overflow-hidden pointer-events-auto border-l border-white/10"
-                style={{ willChange: 'transform' }}
-              >
-                <div
-                  className="absolute top-0 right-0 w-[100vw] h-full"
-                  style={{
-                    backgroundImage: `url(${doorImageLocal})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                />
-              </motion.div>
-            </div>
-          )}
-        </>
+            />
+          </motion.div>
+ 
+          {/* Right Door */}
+          <motion.div
+            initial={{ x: '0%' }}
+            animate={windowOpen ? { x: '100%', translateZ: 0 } : { x: '0%', translateZ: 0 }}
+            transition={{ duration: 3.0, ease: [0.76, 0, 0.24, 1] }}
+            className="w-1/2 h-full relative overflow-hidden pointer-events-auto border-l border-white/10"
+            style={{ willChange: 'transform' }}
+          >
+            <div
+              className="absolute top-0 right-0 w-[100vw] h-full"
+              style={{
+                backgroundImage: `url(${doorImageLocal})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+              }}
+            />
+          </motion.div>
+        </div>
       )}
     </div>
   );
