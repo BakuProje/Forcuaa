@@ -74,10 +74,52 @@ export default function Example({ play = true }: { play?: boolean }) {
   const [showPlayStateOverlay, setShowPlayStateOverlay] = useState<"play" | "pause" | null>(null);
   const videoPlayerRef = useRef<HTMLVideoElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const gridVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const [visibleVideos, setVisibleVideos] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
   }, []);
+
+  // IntersectionObserver: only autoplay visible grid videos (performance optimization)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setVisibleVideos((prev) => {
+          const next = new Set(prev);
+          entries.forEach((entry) => {
+            const idx = Number(entry.target.getAttribute('data-video-idx'));
+            if (entry.isIntersecting) {
+              next.add(idx);
+            } else {
+              next.delete(idx);
+            }
+          });
+          return next;
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    const videos = gridVideoRefs.current;
+    videos.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Autoplay/pause grid videos based on visibility and play prop
+  useEffect(() => {
+    gridVideoRefs.current.forEach((video, idx) => {
+      if (!video) return;
+      if (play && visibleVideos.has(idx) && !isMobile) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
+  }, [play, visibleVideos, isMobile]);
 
   // Restore state on mount
   useEffect(() => {
@@ -206,14 +248,15 @@ export default function Example({ play = true }: { play?: boolean }) {
                   {/* Local floating hearts inside the card in front of video */}
                   <LocalCardHearts />
 
-                  {/* Live loop video inside card */}
+                  {/* Live loop video inside card - lazy loaded with metadata preload */}
                   <video
+                    ref={(el) => { gridVideoRefs.current[idx] = el; }}
+                    data-video-idx={idx}
                     src={video.src}
                     muted
-                    autoPlay={play && !isMobile}
                     loop
                     playsInline
-                    preload="auto"
+                    preload="metadata"
                     className="h-full w-full object-cover pointer-events-none select-none"
                   />
 
@@ -238,7 +281,7 @@ export default function Example({ play = true }: { play?: boolean }) {
                       }}
                       className="bg-[#e60023] hover:bg-[#ad0018] text-white font-semibold text-[9px] px-2 py-0.5 rounded-full shadow-md active:scale-95 transition-transform"
                     >
-                      Love
+                      My Love
                     </button>
                   </div>
 
@@ -303,6 +346,7 @@ export default function Example({ play = true }: { play?: boolean }) {
                   loop
                   autoPlay
                   playsInline
+                  preload="auto"
                   className="w-full h-full object-cover bg-black select-none pointer-events-none"
                 />
 
