@@ -17,7 +17,8 @@ function GalleryHearts() {
 
   const hearts = useMemo(() => {
     if (!mounted) return [];
-    return Array.from({ length: 20 }).map((_, i) => ({
+    const count = typeof window !== 'undefined' && window.innerWidth < 768 ? 8 : 20;
+    return Array.from({ length: count }).map((_, i) => ({
       id: i,
       x: Math.random() * 100,
       size: Math.random() * 14 + 10,

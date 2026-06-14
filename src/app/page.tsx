@@ -13,7 +13,8 @@ function FloatingHearts() {
   const hearts = useMemo(
     () => {
       if (!mounted) return [];
-      return Array.from({ length: 30 }).map((_, i) => ({
+      const count = typeof window !== 'undefined' && window.innerWidth < 768 ? 10 : 25;
+      return Array.from({ length: count }).map((_, i) => ({
         id: i,
         x: Math.random() * 100,
         size: Math.random() * 14 + 8,
@@ -82,8 +83,9 @@ function LoveEntrance() {
 
   useEffect(() => {
     setMounted(true);
-    const burst = Array.from({ length: 25 }).map((_, i) => {
-      const angle = (i / 25) * Math.PI * 2;
+    const count = window.innerWidth < 768 ? 12 : 25;
+    const burst = Array.from({ length: count }).map((_, i) => {
+      const angle = (i / count) * Math.PI * 2;
       const dist = Math.random() * 180 + 80;
       return {
         id: i,

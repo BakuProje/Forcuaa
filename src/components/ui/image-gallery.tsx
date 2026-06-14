@@ -67,12 +67,17 @@ function LocalCardHearts() {
   );
 }
 
-export default function Example() {
+export default function Example({ play = true }: { play?: boolean }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [fullscreenVideoIdx, setFullscreenVideoIdx] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showPlayStateOverlay, setShowPlayStateOverlay] = useState<"play" | "pause" | null>(null);
   const videoPlayerRef = useRef<HTMLVideoElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
 
   // Restore state on mount
   useEffect(() => {
@@ -205,9 +210,10 @@ export default function Example() {
                   <video
                     src={video.src}
                     muted
-                    autoPlay
+                    autoPlay={play && !isMobile}
                     loop
                     playsInline
+                    preload="auto"
                     className="h-full w-full object-cover pointer-events-none select-none"
                   />
 

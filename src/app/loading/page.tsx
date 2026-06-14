@@ -21,7 +21,8 @@ function GalleryHearts() {
 
   const hearts = useMemo(() => {
     if (!mounted) return [];
-    return Array.from({ length: 15 }).map((_, i) => ({
+    const count = typeof window !== 'undefined' && window.innerWidth < 768 ? 6 : 15;
+    return Array.from({ length: count }).map((_, i) => ({
       id: i,
       x: Math.random() * 100,
       size: Math.random() * 12 + 8,
@@ -234,7 +235,7 @@ export default function LoadingPage() {
         >
           <GalleryHearts />
           <div className="w-full max-w-full sm:max-w-3xl z-20 flex items-center justify-center flex-1">
-            <ClassicGallery />
+            <ClassicGallery play={false} />
           </div>
         </div>
       )}
