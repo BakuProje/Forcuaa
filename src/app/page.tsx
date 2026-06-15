@@ -503,9 +503,6 @@ Terima kasih karena sudah menjadi Wonder Womanku, sosok yang selalu berjuang tan
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#b8956a] to-[#8b6f47] hover:from-[#a67c52] hover:to-[#6b5234] text-white font-semibold text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 pointer-events-auto"
                 >
                   <span>Tutup Pesan</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-3 h-3">
-                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
                 </button>
               ) : null}
             </div>
