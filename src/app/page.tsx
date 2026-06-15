@@ -557,7 +557,7 @@ export default function Home() {
           setScanComplete(true);
           setTimeout(() => {
             setIsLeaving(true);
-            setTimeout(() => router.push('/loading'), 1000);
+            setTimeout(() => router.push('/gallery?transition=true'), 1000);
           }, 400);
           return 100;
         }

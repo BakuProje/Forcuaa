@@ -58,11 +58,92 @@ function LocalCardHearts() {
             ease: 'easeOut',
           }}
         >
-          <svg viewBox="0 0 24 24" fill="#ff4081" className="w-full h-full drop-shadow-[0_0_2px_rgba(255,64,129,0.5)]">
+          <svg viewBox="0 0 24 24" fill="#ff4081" className="w-full h-full">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
           </svg>
         </motion.div>
       ))}
+    </div>
+  );
+}
+
+interface LazyVideoProps {
+  src: string;
+  play: boolean;
+}
+
+function LazyVideo({ src, play }: LazyVideoProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // IntersectionObserver to detect viewport visibility
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      {
+        rootMargin: '180px', // start preparing early before rolling on screen
+        threshold: 0.01,
+      }
+    );
+
+    const currentRef = containerRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, []);
+
+  // Play/Pause control based on visibility & active transition state
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isVisible && play) {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((err) => {
+            console.warn("Autoplay prevented or interrupted:", err);
+          });
+      }
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  }, [isVisible, play]);
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative bg-stone-950 overflow-hidden">
+      <video
+        ref={videoRef}
+        src={src}
+        muted
+        loop
+        playsInline
+        webkit-playsinline="true"
+        preload="metadata"
+        className={cn(
+          "h-full w-full object-cover pointer-events-none select-none transition-all duration-700 ease-out",
+          isPlaying ? "opacity-100 scale-100" : "opacity-55 scale-[1.01]"
+        )}
+      />
     </div>
   );
 }
@@ -203,18 +284,13 @@ export default function Example({ play = true }: { play?: boolean }) {
                         : "border-white/10 z-10"
                   )}
                 >
-                  {/* Local floating hearts inside the card in front of video */}
-                  <LocalCardHearts />
+                  {/* Local floating hearts inside the card in front of video, only on hover */}
+                  {isHovered && <LocalCardHearts />}
 
-                  {/* Live loop video inside card */}
-                  <video
+                  {/* Lazy loaded video that autoplays when visible */}
+                  <LazyVideo
                     src={video.src}
-                    muted
-                    autoPlay={play && !isMobile}
-                    loop
-                    playsInline
-                    preload="auto"
-                    className="h-full w-full object-cover pointer-events-none select-none"
+                    play={play}
                   />
 
                   {/* Subtle shine overlay on hover */}
@@ -303,6 +379,8 @@ export default function Example({ play = true }: { play?: boolean }) {
                   loop
                   autoPlay
                   playsInline
+                  webkit-playsinline="true"
+                  preload="auto"
                   className="w-full h-full object-cover bg-black select-none pointer-events-none"
                 />
 
