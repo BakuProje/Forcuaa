@@ -153,13 +153,13 @@ export default function GalleryPage() {
       setVideoStarted(true);
     }
 
-    // Fade out loader at 19.2s (800ms before transition at 20s)
-    if (v.currentTime >= 19.2 && !isExitingLoader) {
+    // Fade out loader at 23.2s (800ms before transition at 24s)
+    if (v.currentTime >= 23.2 && !isExitingLoader) {
       setIsExitingLoader(true);
     }
 
-    // Trigger door opening sequence at 20.0s
-    if (v.currentTime >= 20.0 && !showDoors) {
+    // Trigger door opening sequence at 24.0s
+    if (v.currentTime >= 24.0 && !showDoors) {
       const frame = captureVideoFrame();
       setDoorImageLocal(frame);
       setDoorImage(frame); 
@@ -171,7 +171,7 @@ export default function GalleryPage() {
         setWindowOpen(true);
       }, 150);
  
-      // After 3.15s of door opening (at 23.15s), complete transition locally (no router redirect)
+      // After 3.15s of door opening (at 27.15s), complete transition locally (no router redirect)
       setTimeout(() => {
         if (videoRef.current) videoRef.current.pause();
         setTransitionActive(false);
@@ -213,7 +213,7 @@ export default function GalleryPage() {
           }, 150);
         }, 800);
       }
-    }, 20500);
+    }, 24500);
 
     return () => clearTimeout(fallbackTimer);
   }, [mounted, transitionActive, showDoors]);
