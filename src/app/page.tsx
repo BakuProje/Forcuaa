@@ -282,7 +282,7 @@ function TypewriterModal({ onClose }: TypewriterModalProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const MESSAGES = [
-    `Wanita Kuat
+    `Wonder Woman
 
 Teruntuk perempuan kuat yang selalu aku banggakan,jangan pernah meragukan dirimu hanya karena hari ini terasa berat. Kamu sudah melewati begitu banyak hal yang bahkan tidak semua orang mampu hadapi. Di balik senyummu, ada perjuangan yang mungkin tidak banyak diketahui orang, tetapi saya tahu betapa hebatnya dirimu.
 
@@ -299,7 +299,7 @@ Tetaplah kuat, tetaplah rendah hati, dan tetaplah menjadi perempuan yang penuh k
 
 Kamu tidak harus menjadi sempurna untuk menjadi hebat. Cukup terus melangkah, karena setiap langkahmu adalah bukti bahwa kamu jauh lebih kuat daripada yang kamu kira.`,
 
-    `Perbaiki Hubungan
+    `For You
 
 menghadapi banyak hal dengan kuat, sabar, dan penuh semangat. Meski sekarang kita terhalang oleh komunikasi, rasa syukurku dan rasa banggaku kepada kita tidak akan pernah hilang.
 
